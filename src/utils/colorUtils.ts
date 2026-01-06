@@ -178,29 +178,37 @@ export const getColorForBiologicals = (
   treated: boolean,
   index: number,
   trialPlots?: any,
-  selectedApplication: number = index
+  selectedApplication?: number // Make it optional
 ) => {
-  const finalColor = "";
+  // If index is undefined or null, use 0 as the application index
+  const applicationIndex =
+    selectedApplication !== undefined && selectedApplication !== null
+      ? selectedApplication
+      : index !== undefined && index !== null
+      ? index
+      : 0;
+
   if (treated === false) {
     return "#DFE2E7";
-  } else {
-    if (!trialPlots) return undefined;
-    for (const trialPlot of trialPlots) {
-      const treatments =
-        trialPlot?.properties?.biologicals?.treatments?.[selectedApplication] ??
-        [];
-      for (
-        let treatmentsIndex = 0;
-        treatmentsIndex < treatments.length;
-        treatmentsIndex++
-      ) {
-        if (index == treatmentsIndex) {
-          return treatments[treatmentsIndex].color;
-        }
+  }
+
+  if (!trialPlots) return undefined;
+
+  for (const trialPlot of trialPlots) {
+    const treatments =
+      trialPlot?.properties?.biologicals?.treatments?.[applicationIndex] ?? [];
+    for (
+      let treatmentsIndex = 0;
+      treatmentsIndex < treatments.length;
+      treatmentsIndex++
+    ) {
+      if (index === treatmentsIndex) {
+        return treatments[treatmentsIndex].color;
       }
     }
   }
-  return finalColor;
+
+  return "";
 };
 
 // A helper to return HSL color string

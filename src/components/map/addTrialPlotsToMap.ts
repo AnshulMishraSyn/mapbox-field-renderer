@@ -25,7 +25,8 @@ export const addTrialPlotsToMap = (
             plot,
             index,
             selectedProperty,
-            selectedApplication
+            selectedApplication,
+            trialPlots
           );
           addPlotSourceAndLayer(
             map,
@@ -50,7 +51,8 @@ export const addTrialPlotsToMap = (
               plot,
               index,
               selectedProperty,
-              selectedApplication
+              selectedApplication,
+              trialPlots
             );
             addPlotSourceAndLayer(
               map,
