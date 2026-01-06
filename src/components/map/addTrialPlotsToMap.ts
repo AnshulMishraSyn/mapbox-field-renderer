@@ -21,7 +21,12 @@ export const addTrialPlotsToMap = (
       (polygonCoordinates: any, index: number) => {
         const plotSourceId = `plot-${plotIndex}-${index}`;
         if (!map.current!.getSource(plotSourceId)) {
-          const colorNew = getColorForPlot(plot, index, selectedProperty,selectedApplication);
+          const colorNew = getColorForPlot(
+            plot,
+            index,
+            selectedProperty,
+            selectedApplication
+          );
           addPlotSourceAndLayer(
             map,
             plotSourceId,
@@ -41,7 +46,12 @@ export const addTrialPlotsToMap = (
         (polygonCoordinates: any, index: number) => {
           const plotSourceId = `replicant-plot-${plotIndex}-${index}`;
           if (!map.current!.getSource(plotSourceId)) {
-            const colorNew = getColorForPlot(plot, index, selectedProperty,selectedApplication);
+            const colorNew = getColorForPlot(
+              plot,
+              index,
+              selectedProperty,
+              selectedApplication
+            );
             addPlotSourceAndLayer(
               map,
               plotSourceId,
