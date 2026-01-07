@@ -14,32 +14,33 @@ export const addLabelToMap = (
   size: number
 ) => {
   const labelLayerId = `${sourceId}-label-${type}`;
-  
+
   // Set default values for different label types
   const defaultOffsets: Record<string, [number, number]> = {
-    'group': [0, -0.2],   // Group labels (A, B, C, etc.) slightly above the plot
-    'plot': [0, 0]        // Plot labels (1, 2, 3, etc.) centered
+    group: [0, -0.2], // Group labels (A, B, C, etc.) slightly above the plot
+    plot: [0, 0], // Plot labels (1, 2, 3, etc.) centered
   };
-  
+
   const defaultSizes: Record<string, number> = {
-    'group': 14,  // Larger for group labels
-    'plot': 12    // Normal size for plot labels
+    group: 14, // Larger for group labels
+    plot: 12, // Normal size for plot labels
   };
-  
+
   // Use the provided values or defaults
-  const finalOffset = offset || (defaultOffsets[type] || [0, 0]);
-  const finalSize = size || (defaultSizes[type] || 12);
-  
+  const finalOffset = offset || defaultOffsets[type] || [0, 0];
+  const finalSize = size || defaultSizes[type] || 12;
+
   // Remove existing label layer if it exists
   if (map.getLayer(labelLayerId)) {
     map.removeLayer(labelLayerId);
   }
-  
+
   // Add the label layer at the top of all layers
   const style = map.getStyle();
   const layers = style?.layers || [];
-  const topLayerId = layers.length > 0 ? layers[layers.length - 1].id : undefined;
-  
+  const topLayerId =
+    layers.length > 0 ? layers[layers.length - 1].id : undefined;
+
   map.addLayer(
     {
       id: labelLayerId,
@@ -50,8 +51,8 @@ export const addLabelToMap = (
         "text-size": finalSize,
         "text-offset": finalOffset,
         "text-anchor": position,
-       // "text-allow-overlap": true, // Allow labels to overlap with other map elements
-      //  "text-ignore-placement": true, // Prioritize showing these labels
+        // "text-allow-overlap": true, // Allow labels to overlap with other map elements
+        //  "text-ignore-placement": true, // Prioritize showing these labels
         "symbol-z-order": "source", // Ensure labels appear on top based on source order
       },
       paint: {
@@ -73,7 +74,7 @@ const addGroupLabelToMap = (
 ) => {
   const groupSourceId = `${sourceId}-group-label`;
   const labelLayerId = `${sourceId}-label-group`;
-  
+
   // Remove existing group label source and layer
   if (map.getLayer(labelLayerId)) {
     map.removeLayer(labelLayerId);
@@ -81,48 +82,50 @@ const addGroupLabelToMap = (
   if (map.getSource(groupSourceId)) {
     map.removeSource(groupSourceId);
   }
-  
+
   // Calculate centroid of all polygons
-  const allPolygons = coordinates.map(polygonCoords => ({
+  const allPolygons = coordinates.map((polygonCoords) => ({
     type: "Feature" as const,
     geometry: {
       type: "Polygon" as const,
       coordinates: polygonCoords,
     },
-    properties: {}
+    properties: {},
   }));
-  
+
   const featureCollection = turf.featureCollection(allPolygons);
   const centroid = turf.centroid(featureCollection);
   const bbox = turf.bbox(featureCollection);
-  
+
   // Position the label outside the plot group (above the top of the bounding box)
   const labelPosition = [
     centroid.geometry.coordinates[0], // x: center horizontally
-    bbox[3] // y: top of bounding box
+    bbox[3], // y: top of bounding box
   ];
-  
+
   // Create point source for group label
   const groupLabelSource: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
-    features: [{
-      type: "Feature",
-      geometry: {
-        type: "Point",
-        coordinates: labelPosition
+    features: [
+      {
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: labelPosition,
+        },
+        properties: {
+          label: label,
+        },
       },
-      properties: {
-        label: label
-      }
-    }]
+    ],
   };
-  
+
   // Add group label source
   map.addSource(groupSourceId, {
     type: "geojson",
     data: groupLabelSource,
   });
-  
+
   // Add group label layer
   map.addLayer({
     id: labelLayerId,
@@ -155,7 +158,8 @@ export const addMultiPolygonSourceWithMarker = (
   lineColor: string,
   lineWidth: number,
   replicant: boolean = false,
-  replicantLineDashArray?: number[]
+  replicantLineDashArray?: number[],
+  trialPlots?: any[]
 ) => {
   if (!map.current) return;
 
@@ -164,28 +168,28 @@ export const addMultiPolygonSourceWithMarker = (
     map.current.removeLayer(sourceId);
   }
 
-   // Remove existing label layers
-   if (map.current.getLayer(`${sourceId}-label-group`)) {
+  // Remove existing label layers
+  if (map.current.getLayer(`${sourceId}-label-group`)) {
     map.current.removeLayer(`${sourceId}-label-group`);
   }
 
-   // Remove group label layers (new naming convention)
-   if (map.current.getLayer(`${sourceId}-group-label-label-group`)) {
+  // Remove group label layers (new naming convention)
+  if (map.current.getLayer(`${sourceId}-group-label-label-group`)) {
     map.current.removeLayer(`${sourceId}-group-label-label-group`);
   }
 
-   if (map.current.getLayer(`${sourceId}-label-plot`)) {
+  if (map.current.getLayer(`${sourceId}-label-plot`)) {
     map.current.removeLayer(`${sourceId}-label-plot`);
   }
 
-    // Remove legacy label layers for compatibility
-    if (map.current.getLayer(`${sourceId}-label`)) {
-      map.current.removeLayer(`${sourceId}-label`);
-    }
+  // Remove legacy label layers for compatibility
+  if (map.current.getLayer(`${sourceId}-label`)) {
+    map.current.removeLayer(`${sourceId}-label`);
+  }
 
-    if (map.current.getLayer(`${sourceId}-label-plotName`)) {
-      map.current.removeLayer(`${sourceId}-label-plotName`);
-    }
+  if (map.current.getLayer(`${sourceId}-label-plotName`)) {
+    map.current.removeLayer(`${sourceId}-label-plotName`);
+  }
 
   if (map.current.getLayer(`${sourceId}-outline`)) {
     map.current.removeLayer(`${sourceId}-outline`);
@@ -215,10 +219,11 @@ export const addMultiPolygonSourceWithMarker = (
           plot,
           index,
           selectedProperty,
-          selectedApplication
+          selectedApplication,
+          trialPlots
         ),
         description: `${sourceId}-${index}`,
-        label:index+1,
+        label: index + 1,
       },
     })),
   };
@@ -239,53 +244,55 @@ export const addMultiPolygonSourceWithMarker = (
       "fill-opacity": fillOpacity,
     },
   });
- const groupLabel = +(sourceId.split("-")?.[ sourceId.split("-").length - 1 ]);
+  const groupLabel = +sourceId.split("-")?.[sourceId.split("-").length - 1];
 
   // Create separate source for group label positioned outside the plot group
   const groupLabelSourceId = `${sourceId}-group-label`;
-  
+
   // Calculate bounding box and position label outside the plot group
-  const allPolygons = coordinates.map(polygonCoords => ({
+  const allPolygons = coordinates.map((polygonCoords) => ({
     type: "Feature" as const,
     geometry: {
       type: "Polygon" as const,
       coordinates: polygonCoords,
     },
-    properties: {}
+    properties: {},
   }));
-  
+
   const featureCollection = turf.featureCollection(allPolygons);
   const centroid = turf.centroid(featureCollection);
   const bbox = turf.bbox(featureCollection);
-  
+
   // Position the label above the plot group
   const labelPosition = [
     centroid.geometry.coordinates[0], // x: center horizontally
-    bbox[3] // y: top of bounding box
+    bbox[3], // y: top of bounding box
   ];
-  
+
   // Create separate point source for group label
   const groupLabelGeoJson: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
-    features: [{
-      type: "Feature",
-      geometry: {
-        type: "Point",
-        coordinates: labelPosition
+    features: [
+      {
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: labelPosition,
+        },
+        properties: {
+          label: replicant
+            ? `${String.fromCharCode(65 + groupLabel)}'` // A', B', C' for replicants
+            : String.fromCharCode(65 + groupLabel), // A, B, C for main plots
+        },
       },
-      properties: {
-        label: replicant 
-          ? `${String.fromCharCode(65 + groupLabel)}'` // A', B', C' for replicants
-          : String.fromCharCode(65 + groupLabel) // A, B, C for main plots
-      }
-    }]
+    ],
   };
-  
+
   // Remove existing group label source if it exists
   if (map.current.getSource(groupLabelSourceId)) {
     map.current.removeSource(groupLabelSourceId);
   }
-  
+
   // Add group label source
   map.current.addSource(groupLabelSourceId, {
     type: "geojson",
@@ -294,10 +301,10 @@ export const addMultiPolygonSourceWithMarker = (
 
   // Add group label using the improved function
   if (map.current) {
-    const groupLabelText = replicant 
+    const groupLabelText = replicant
       ? `${String.fromCharCode(65 + groupLabel)}'` // A', B', C' for replicants
       : String.fromCharCode(65 + groupLabel); // A, B, C for main plots
-    
+
     addLabelToMap(
       map.current,
       groupLabelSourceId,
@@ -356,7 +363,7 @@ export const addTrialPlotsToMap = (
   lineColor: string = "#ffffff",
   lineWidth: number = 1,
   replicantLineDashArray: number[] = [2, 2],
-  prefix: string = "",
+  prefix: string = ""
 ) => {
   if (!map.current) return;
 
@@ -374,12 +381,13 @@ export const addTrialPlotsToMap = (
       lineColor,
       lineWidth,
       false, // not a replicant
-      undefined // no dash array for main plots
+      undefined, // no dash array for main plots
+      trialPlots
     );
 
     // Add replicants
-   
-    plot.replicants?.forEach((replicant,rindex) => {
+
+    plot.replicants?.forEach((replicant, rindex) => {
       const replicantCoordinates: MultiPolygon["coordinates"] = [];
       replicantCoordinates.push(
         ...(replicant.geojson.geometry as MultiPolygon).coordinates
@@ -397,11 +405,10 @@ export const addTrialPlotsToMap = (
           lineColor,
           lineWidth,
           true,
-          replicantLineDashArray
+          replicantLineDashArray,
+          trialPlots
         );
       }
     });
-
-   
   });
 };
