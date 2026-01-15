@@ -121,6 +121,25 @@ export const colorMatrix = [
   limeColorShade,
 ];
 
+function getShadeByRate(
+  baseH: number,
+  baseS: number,
+  rates: number[],
+  rate: number
+): string {
+  const sortedRates = [...rates].sort((a, b) => a - b);
+  const minRate = sortedRates[0],
+    maxRate = sortedRates[sortedRates.length - 1];
+  // Example: min maps to 90 (lightest), max maps to 20 (darkest).
+  const minL = 90;
+  const maxL = 20;
+  let l = minL;
+  if (maxRate !== minRate) {
+    l = minL - ((rate - minRate) / (maxRate - minRate)) * (minL - maxL);
+  }
+  return hslColor(baseH, baseS, Math.round(l));
+}
+
 export const getColorForSeeds = (
   rates: number[],
   rate: number,
@@ -128,8 +147,26 @@ export const getColorForSeeds = (
   trialPlots?: any[],
   variety?: string
 ) => {
-  // First, new logic: try to find and return color if exact match in trialPlots
   if (trialPlots && variety) {
+    // Gather all dosages for this variety and build a map: color (hex) → array of {rate, color}
+    const colorRatesMap: { [color: string]: number[] } = {};
+    for (const trialPlot of trialPlots) {
+      const dosages = trialPlot?.properties?.seeds?.rates_and_dosages ?? [];
+      for (const dosage of dosages) {
+        if (
+          dosage.variety === variety &&
+          dosage.color &&
+          typeof dosage.color === "string" &&
+          dosage.color.trim().length > 0
+        ) {
+          const color = dosage.color.trim().toLowerCase();
+          if (!colorRatesMap[color]) colorRatesMap[color] = [];
+          colorRatesMap[color].push(Number(dosage.rate));
+        }
+      }
+    }
+
+    // Now, find the color (if any) for THIS rate, and check if the color applies to multiple rates
     for (const trialPlot of trialPlots) {
       const dosages = trialPlot?.properties?.seeds?.rates_and_dosages ?? [];
       for (const dosage of dosages) {
@@ -140,7 +177,15 @@ export const getColorForSeeds = (
           typeof dosage.color === "string" &&
           dosage.color.trim().length > 0
         ) {
-          return dosage.color;
+          const color = dosage.color.trim().toLowerCase();
+          const ratesForColor = colorRatesMap[color];
+          if (ratesForColor && ratesForColor.length > 1) {
+            // CASE 1: Multiple rates share this color for this variety! Apply HSL lightness transformation.
+            const { h, s } = hexToHSL(color);
+            return getShadeByRate(h, s, ratesForColor, rate);
+          }
+          // CASE 2: Only one rate for this color, just use normal color
+          return color;
         }
       }
     }
@@ -173,6 +218,59 @@ export const getColorForSeeds = (
 
   return colorShade[50];
 };
+
+// export const getColorForSeeds = (
+//   rates: number[],
+//   rate: number,
+//   varietyIndex: number,
+//   trialPlots?: any[],
+//   variety?: string
+// ) => {
+//   // First, new logic: try to find and return color if exact match in trialPlots
+//   if (trialPlots && variety) {
+//     for (const trialPlot of trialPlots) {
+//       const dosages = trialPlot?.properties?.seeds?.rates_and_dosages ?? [];
+//       for (const dosage of dosages) {
+//         if (
+//           dosage.variety === variety &&
+//           Number(dosage.rate) === Number(rate) &&
+//           dosage.color &&
+//           typeof dosage.color === "string" &&
+//           dosage.color.trim().length > 0
+//         ) {
+//           return dosage.color;
+//         }
+//       }
+//     }
+//   }
+
+//   // Old/Default logic:
+//   const colorShade = colorMatrix[varietyIndex % colorMatrix.length] ?? [];
+//   const average = rates.reduce((sum, r) => sum + r, 0) / rates.length;
+
+//   if (rate === average) return colorShade[50];
+
+//   if (rate < average) {
+//     const lowerThanAvg = rates.filter((r) => r < average).sort((a, b) => b - a);
+//     const position = lowerThanAvg.indexOf(rate);
+//     if (position === 0) return colorShade[40];
+//     if (position === 1) return colorShade[30];
+//     return colorShade[20];
+//   }
+
+//   if (rate > average) {
+//     const higherThanAvg = rates
+//       .filter((r) => r > average)
+//       .sort((a, b) => a - b);
+//     const position = higherThanAvg.indexOf(rate);
+//     if (position === 0) return colorShade[60];
+//     if (position === 1) return colorShade[70];
+//     if (position === 2) return colorShade[80];
+//     return colorShade[90];
+//   }
+
+//   return colorShade[50];
+// };
 
 export const getColorForBiologicals = (
   treated: boolean,
